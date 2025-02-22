@@ -1,4 +1,4 @@
-module livecode
+module github.com/pancakeswya/gopad
 
 go 1.18
 
