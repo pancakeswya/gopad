@@ -116,10 +116,14 @@ func NewLivecode() *Livecode {
 	return &Livecode{
 		notify: broadcast.NewRelay[Notify](),
 		update: broadcast.NewRelay[ServerMsg](),
+		state: State{
+			users:   make(map[uint64]ClientInfo),
+			cursors: make(map[uint64]CursorData),
+		},
 	}
 }
 
-func FromDocument(doc *PersistedDocument) *Livecode {
+func FromDocument(doc *Document) *Livecode {
 	operation := ot.NewSequence()
 	operation.Insert(doc.Text)
 
@@ -156,10 +160,10 @@ func (livecode *Livecode) Text() string {
 	return livecode.state.text
 }
 
-func (livecode *Livecode) Snapshot() *PersistedDocument {
+func (livecode *Livecode) Snapshot() *Document {
 	livecode.stateMtx.RLock()
 	defer livecode.stateMtx.RUnlock()
-	return &PersistedDocument{
+	return &Document{
 		Text:     livecode.state.text,
 		Language: livecode.state.language,
 	}
@@ -283,10 +287,9 @@ func (livecode *Livecode) handleMessage(id uint64, msg ClientMsg) error {
 }
 
 func (livecode *Livecode) handleMessages(id uint64, revision int, updateRx *broadcast.Listener[ServerMsg], msgChan <-chan ClientMsg, resChan <-chan error, conn *websocket.Conn) (bool, error) {
-	notified := livecode.notify.Listener(1)
-	defer notified.Close()
+	notify := livecode.notify.Listener(1)
+	defer notify.Close()
 
-	<-notified.Ch()
 	if livecode.Killed() {
 		return true, nil
 	}
@@ -298,7 +301,7 @@ func (livecode *Livecode) handleMessages(id uint64, revision int, updateRx *broa
 		}
 	}
 	select {
-	case <-notified.Ch():
+	case <-notify.Ch():
 	case update := <-updateRx.Ch():
 		if err = conn.WriteJSON(update); err != nil {
 			return true, err

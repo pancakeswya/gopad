@@ -1,6 +1,6 @@
 package livecode
 
-type PersistedDocument struct {
+type Document struct {
 	Text     string  `json:"text"`
 	Language *string `json:"language"`
 }
