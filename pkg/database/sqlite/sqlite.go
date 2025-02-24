@@ -5,14 +5,25 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pancakeswya/gopad/pkg/livecode"
+	"os"
+	"path"
+)
+
+const (
+	dbName       = "db.sql"
+	defaultDbDir = "db_data"
 )
 
 type Database struct {
 	db *sql.DB
 }
 
-func NewDatabase(uri string) (*Database, error) {
-	db, err := sql.Open("sqlite3", uri)
+func NewDatabase() (*Database, error) {
+	dbPath, err := getOrCreateDefaultDbPath()
+	if err != nil {
+		return nil, err
+	}
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -82,4 +93,15 @@ func runMigrations(db *sql.DB) error {
 		)
 	`)
 	return err
+}
+
+func getOrCreateDefaultDbPath() (string, error) {
+	dbPath := os.Getenv("DB_PATH")
+	if len(dbPath) != 0 {
+		return dbPath, nil
+	}
+	if err := os.MkdirAll(defaultDbDir, 0750); err != nil {
+		return "", err
+	}
+	return path.Join(defaultDbDir, dbName), nil
 }

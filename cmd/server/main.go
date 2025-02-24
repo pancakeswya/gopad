@@ -3,30 +3,30 @@ package main
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
-	"github.com/pancakeswya/gopad/pkg/server"
 	"github.com/rs/zerolog/log"
+	"github.com/pancakeswya/gopad/pkg/gopad"
+	"github.com/pancakeswya/gopad/pkg/database/sqlite"
 )
 
 func main() {
-	config := server.NewDefaultConfig()
-	defer config.Cleanup()
+	database, err := sqlite.NewDatabase()
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create database")
+	}
+	defer database.Close()
 
-	state := server.NewState(config.Database)
+	state := gopad.NewState(database)
 	defer state.Close()
 
-	state.RunCleaner(config.ExpiryDays)
+	state.RunCleaner(1)
 
-	router := mux.NewRouter()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/socket/{id}", state.SocketHandle)
+	mux.HandleFunc("/api/text/{id}", state.TextHandle)
+	mux.HandleFunc("/api/stats", state.StatsHandle)
+	mux.Handle("/", http.FileServer(http.Dir("dist")))
 
-	api := router.PathPrefix("/api").Subrouter()
-	api.HandleFunc("/socket/{id}", state.HandleSocket)
-	api.HandleFunc("/text/{id}", state.HandleText)
-	api.HandleFunc("/stats", state.HandleStats)
-
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("dist")))
-
-	if err := http.ListenAndServe(":8080", router); err != nil {
+	if err = http.ListenAndServe(":8080", mux); err != nil {
 		log.Error().Err(err).Msg("failed to listen and serve")
 	}
 }

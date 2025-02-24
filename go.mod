@@ -1,9 +1,8 @@
 module github.com/pancakeswya/gopad
 
-go 1.18
+go 1.22
 
 require (
-	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/pancakeswya/ot v0.0.0-20250222205723-e45f8a458d49

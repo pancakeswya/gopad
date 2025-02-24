@@ -9,11 +9,11 @@ import (
 	"github.com/pancakeswya/ot"
 	"math"
 	"github.com/teivah/broadcast"
-	"github.com/rs/zerolog/log"
 	"context"
 	"encoding/json"
-	"errors"
 	"slices"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type Notify struct{}
@@ -26,6 +26,8 @@ type Livecode struct {
 	notify *broadcast.Relay[Notify]
 	update *broadcast.Relay[ServerMsg]
 	killed atomic.Bool
+
+	logger zerolog.Logger
 }
 
 type State struct {
@@ -36,82 +38,6 @@ type State struct {
 	cursors    map[uint64]CursorData
 }
 
-type UserOperation struct {
-	Id       uint64       `json:"id"`
-	Sequence *ot.Sequence `json:"operation"`
-}
-
-type ClientInfo struct {
-	Name string `json:"name"`
-	Hue  uint32 `json:"hue"`
-}
-
-type CursorData struct {
-	Cursors    []uint32    `json:"cursors"`
-	Selections [][2]uint32 `json:"selections"`
-}
-
-type Edit struct {
-	Revision  int          `json:"revision"`
-	Operation *ot.Sequence `json:"operation"`
-}
-
-type SetLanguage string
-
-type ClientMsg interface {
-	IsClientMsg()
-}
-
-func (Edit) IsClientMsg()        {}
-func (SetLanguage) IsClientMsg() {}
-func (ClientInfo) IsClientMsg()  {}
-func (CursorData) IsClientMsg()  {}
-
-type History struct {
-	Start      int             `json:"start"`
-	Operations []UserOperation `json:"operations"`
-}
-
-type UserInfo struct {
-	Id   uint64      `json:"id"`
-	Info *ClientInfo `json:"info"`
-}
-
-type UserCursor struct {
-	Id   uint64     `json:"id"`
-	Data CursorData `json:"data"`
-}
-
-type ServerMsg interface {
-	IsServerMsg()
-}
-
-type IdentityServerMsg struct {
-	Identity uint64 `json:"Identity"`
-}
-
-type HistoryServerMsg struct {
-	History History `json:"History"`
-}
-
-type LanguageServerMsg struct {
-	Language string `json:"Language"`
-}
-
-type UserInfoServerMsg struct {
-	UserInfo UserInfo `json:"UserInfo"`
-}
-
-type UserCursorServerMsg struct {
-	UserCursor UserCursor `json:"UserCursor"`
-}
-
-func (IdentityServerMsg) IsServerMsg()   {}
-func (HistoryServerMsg) IsServerMsg()    {}
-func (LanguageServerMsg) IsServerMsg()   {}
-func (UserInfoServerMsg) IsServerMsg()   {}
-func (UserCursorServerMsg) IsServerMsg() {}
-
 func NewLivecode() *Livecode {
 	return &Livecode{
 		notify: broadcast.NewRelay[Notify](),
@@ -120,6 +46,7 @@ func NewLivecode() *Livecode {
 			users:   make(map[uint64]ClientInfo),
 			cursors: make(map[uint64]CursorData),
 		},
+		logger: log.With().Str("component", "livecode.Livecode").Logger(),
 	}
 }
 
@@ -141,9 +68,9 @@ func (livecode *Livecode) OnConnection(conn *websocket.Conn) {
 	id := livecode.count.Add(1)
 
 	if err := livecode.handleConnection(id, conn); err != nil {
-		log.Warn().Msgf("connection terminated early: %v", err)
+		livecode.logger.Warn().Msgf("connection terminated early: %v", err)
 	}
-	log.Info().Msgf("disconnection, id = %v", id)
+	livecode.logger.Info().Msgf("disconnection, id = %v", id)
 
 	livecode.stateMtx.Lock()
 	defer livecode.stateMtx.Unlock()
@@ -202,31 +129,6 @@ func (livecode *Livecode) addUserCursor(id uint64, cursor CursorData) {
 	livecode.state.cursors[id] = cursor
 }
 
-func unmarshalClientMsg(b json.RawMessage) (ClientMsg, error) {
-	var clientMsg struct {
-		Edit        *Edit        `json:"Edit"`
-		SetLanguage *SetLanguage `json:"SetLanguage"`
-		ClientInfo  *ClientInfo  `json:"ClientInfo"`
-		CursorData  *CursorData  `json:"CursorData"`
-	}
-	if err := json.Unmarshal(b, &clientMsg); err != nil {
-		return nil, err
-	}
-	if clientMsg.Edit != nil {
-		return *clientMsg.Edit, nil
-	}
-	if clientMsg.SetLanguage != nil {
-		return *clientMsg.SetLanguage, nil
-	}
-	if clientMsg.ClientInfo != nil {
-		return *clientMsg.ClientInfo, nil
-	}
-	if clientMsg.CursorData != nil {
-		return *clientMsg.CursorData, nil
-	}
-	return nil, errors.New("not supported json schema")
-}
-
 func (livecode *Livecode) readMessagesFromConn(conn *websocket.Conn, ctx context.Context, wg *sync.WaitGroup, resChan chan<- error, msgChan chan<- ClientMsg) {
 	var err error
 	wg.Add(1)
@@ -241,11 +143,13 @@ func (livecode *Livecode) readMessagesFromConn(conn *websocket.Conn, ctx context
 		default:
 			var raw json.RawMessage
 			if err = conn.ReadJSON(&raw); err != nil {
+				livecode.logger.Error().Err(err).Msg("failed to read json from conn")
 				return
 			}
 			var msg ClientMsg
 			msg, err = unmarshalClientMsg(raw)
 			if err != nil {
+				livecode.logger.Error().Err(err).Msg("failed to unmarshal client msg")
 				return
 			}
 			msgChan <- msg
@@ -257,6 +161,7 @@ func (livecode *Livecode) handleMessage(id uint64, msg ClientMsg) error {
 	switch val := msg.(type) {
 	case Edit:
 		if err := livecode.applyEdit(id, val.Revision, val.Operation); err != nil {
+			livecode.logger.Error().Err(err).Msg("failed to apply edit")
 			return err
 		}
 		livecode.notify.Notify(Notify{})
@@ -291,12 +196,14 @@ func (livecode *Livecode) handleMessages(id uint64, revision int, updateRx *broa
 	defer notify.Close()
 
 	if livecode.Killed() {
+		livecode.logger.Info().Msg("livecode is killed, exiting")
 		return true, nil
 	}
 	var err error
 	if livecode.Revision() > revision {
 		revision, err = livecode.sendHistory(revision, conn)
 		if err != nil {
+			livecode.logger.Error().Err(err).Msg("failed to send history")
 			return true, err
 		}
 	}
@@ -304,13 +211,16 @@ func (livecode *Livecode) handleMessages(id uint64, revision int, updateRx *broa
 	case <-notify.Ch():
 	case update := <-updateRx.Ch():
 		if err = conn.WriteJSON(update); err != nil {
+			livecode.logger.Error().Err(err).Msg("failed to send update")
 			return true, err
 		}
 	case msg := <-msgChan:
 		if err = livecode.handleMessage(id, msg); err != nil {
+			livecode.logger.Error().Err(err).Msg("failed to handle message")
 			return true, err
 		}
 	case err = <-resChan:
+		livecode.logger.Error().Err(err).Msg("error in receive messages thread")
 		return true, err
 	}
 	return false, nil
@@ -322,6 +232,7 @@ func (livecode *Livecode) handleConnection(id uint64, conn *websocket.Conn) erro
 
 	revision, err := livecode.sendInitial(id, conn)
 	if err != nil {
+		livecode.logger.Error().Err(err).Msg("failed to send initial")
 		return err
 	}
 	resChan := make(chan error)
@@ -340,6 +251,7 @@ func (livecode *Livecode) handleConnection(id uint64, conn *websocket.Conn) erro
 	for needExit := false; ; {
 		needExit, err = livecode.handleMessages(id, revision, updateRx, msgChan, resChan, conn)
 		if err != nil {
+			livecode.logger.Error().Err(err).Msg("failed to handle messages, exiting")
 			return err
 		}
 		if needExit {
@@ -351,6 +263,7 @@ func (livecode *Livecode) handleConnection(id uint64, conn *websocket.Conn) erro
 
 func (livecode *Livecode) sendInitial(id uint64, conn *websocket.Conn) (int, error) {
 	if err := conn.WriteJSON(IdentityServerMsg{Identity: id}); err != nil {
+		livecode.logger.Error().Err(err).Msg("failed to send identity server msg")
 		return 0, err
 	}
 	var messages []ServerMsg
@@ -389,6 +302,7 @@ func (livecode *Livecode) sendInitial(id uint64, conn *websocket.Conn) (int, err
 	}
 	for _, message := range messages {
 		if err := conn.WriteJSON(message); err != nil {
+			livecode.logger.Error().Err(err).Msg("failed to write messages at sendInitial")
 			return 0, err
 		}
 	}
@@ -400,25 +314,34 @@ func (livecode *Livecode) applySequence(revision int, sequence *ot.Sequence) (st
 	defer livecode.stateMtx.RUnlock()
 
 	if opsLen := len(livecode.state.operations); revision > opsLen {
+		livecode.logger.Error().Msg("invalid revision")
 		return "", fmt.Errorf("got revision %d, but current is %d", revision, opsLen)
 	}
 
 	for _, operation := range livecode.state.operations[revision:] {
 		newSequence, _, err := sequence.Transform(operation.Sequence)
 		if err != nil {
+			livecode.logger.Error().Err(err).Msg("failed to transform operation")
 			return "", err
 		}
 		sequence = newSequence
 	}
 	if sequence.TargetLen > 256*1024 {
+		livecode.logger.Error().Msg("sequence target too large")
 		return "", fmt.Errorf("target length %d is greater than 100 KB maximum", sequence.TargetLen)
 	}
-	return sequence.Apply(livecode.state.text)
+	apply, err := sequence.Apply(livecode.state.text)
+	if err != nil {
+		livecode.logger.Error().Err(err).Msg("failed to apply sequence")
+		return "", err
+	}
+	return apply, nil
 }
 
 func (livecode *Livecode) applyEdit(id uint64, revision int, operation *ot.Sequence) error {
 	newText, err := livecode.applySequence(revision, operation)
 	if err != nil {
+		livecode.logger.Error().Err(err).Msg("failed to apply sequence edit")
 		return err
 	}
 	livecode.stateMtx.Lock()
@@ -464,6 +387,7 @@ func (livecode *Livecode) sendHistory(start int, conn *websocket.Conn) (int, err
 			},
 		}
 		if err := conn.WriteJSON(message); err != nil {
+			livecode.logger.Error().Err(err).Msg("failed to write json message at sendHistory")
 			return 0, err
 		}
 	}
