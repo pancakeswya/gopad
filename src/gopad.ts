@@ -24,12 +24,6 @@ export type UserInfo = {
   readonly hue: number;
 };
 
-function checkErr(err: error) {
-  if (err != null) {
-    throw Error(err.Error());
-  }
-}
-
 /** Browser client for Gopad. */
 class Gopad {
   private ws?: WebSocket;
@@ -220,13 +214,11 @@ class Gopad {
 
   private applyServer(operation: ot.Sequence) {
     if (this.outstanding) {
-      const [first, second, err] = this.outstanding.Transform(operation)!;
-      checkErr(err);
+      const [first, second] = this.outstanding.Transform(operation)!;
       this.outstanding = first;
       operation = second;
       if (this.buffer) {
-        const [first, second, err] = this.buffer.Transform(operation)!;
-        checkErr(err);
+        const [first, second] = this.buffer.Transform(operation)!;
         this.buffer = first;
         operation = second;
       }
@@ -241,9 +233,7 @@ class Gopad {
     } else if (!this.buffer) {
       this.buffer = operation;
     } else {
-      const[buffer, err] = this.buffer.Compose(operation);
-      checkErr(err);
-      this.buffer = buffer;
+      this.buffer = this.buffer.Compose(operation);
     }
     this.transformCursors(operation);
   }
@@ -416,9 +406,7 @@ class Gopad {
         changeOp.Delete(deletedLength);
         changeOp.Insert(text);
         changeOp.Retain(restLength);
-        const[tmp, err] = operation.Compose(changeOp)!;
-        checkErr(err);
-        operation = tmp;
+        operation = operation.Compose(changeOp)!;
         offset += changeOp.TargetLen - changeOp.BaseLen;
       }
       this.applyClient(operation);
