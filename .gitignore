@@ -4,8 +4,8 @@
 .DS_Store
 .idea
 node_modules
-cmd/server/dist
-cmd/server/db_data
+dist*
+db_data*
 
 # Binaries for programs and plugins
 *.exe
