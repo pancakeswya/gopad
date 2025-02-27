@@ -4,7 +4,7 @@ import type {
   IPosition,
   editor,
 } from "monaco-editor/esm/vs/editor/editor.api";
-import "go-ot-to-js";
+import "./ot-js";
 
 /** Options passed in to the Gopad constructor. */
 export type GopadOptions = {
@@ -239,7 +239,7 @@ class Gopad {
   }
 
   private sendOperation(operation: ot.Sequence) {
-    const op = operation.String();
+    const op = operation.ToString();
     this.ws?.send(`{"Edit":{"revision":${this.revision},"operation":${op}}}`);
   }
 
@@ -260,7 +260,7 @@ class Gopad {
 
     this.ignoreChanges = true;
 
-    const ops: (string | number)[] = JSON.parse(operation.String());
+    const ops: (string | number)[] = JSON.parse(operation.ToString());
     let index = 0;
 
     for (const op of ops) {

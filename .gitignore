@@ -7,6 +7,8 @@ node_modules
 dist*
 db_data*
 
+src/ot-js.js*
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

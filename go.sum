@@ -1,5 +1,7 @@
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
+github.com/gopherjs/gopherjs v1.17.2 h1:fQnZVsXk8uxXIStYb0N4bGk7jeyTalG/wsZjQ25dO0g=
+github.com/gopherjs/gopherjs v1.17.2/go.mod h1:pRRIvn/QzFLrKfvEz3qUuEhtE/zLCWfreZ6J5gM2i+k=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
@@ -11,10 +13,10 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-sqlite3 v1.14.24 h1:tpSp2G2KyMnnQu99ngJ47EIkWVmliIizyZBfPrBWDRM=
 github.com/mattn/go-sqlite3 v1.14.24/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
-github.com/pancakeswya/ot v0.0.0-20250222205723-e45f8a458d49 h1:7XpPlTgc/VB70x4JYW8i/oNW7UACkU+8aF6a+D/B2cw=
-github.com/pancakeswya/ot v0.0.0-20250222205723-e45f8a458d49/go.mod h1:ONPYglD2cbcyPb0Qwq8UsVAQo+y7s/F9I0NW6dDOfEg=
 github.com/pancakeswya/ot v0.0.0-20250227162020-5cef2f7b9442 h1:cZduvhBATE+KNsJ931DW7cnIcyJXQjIlOs/dKwGFXI4=
 github.com/pancakeswya/ot v0.0.0-20250227162020-5cef2f7b9442/go.mod h1:ONPYglD2cbcyPb0Qwq8UsVAQo+y7s/F9I0NW6dDOfEg=
+github.com/pancakeswya/ot v0.0.0-20250227194705-e776716555d3 h1:wayQEIISVD5ETjotSpNufs8awj7T9Pgr4M4urzhLlx4=
+github.com/pancakeswya/ot v0.0.0-20250227194705-e776716555d3/go.mod h1:ONPYglD2cbcyPb0Qwq8UsVAQo+y7s/F9I0NW6dDOfEg=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/rs/xid v1.5.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
 github.com/rs/zerolog v1.33.0 h1:1cU2KZkvPxNyfgEmhHAz/1A9Bz+llsdYzklWFzgp0r8=
