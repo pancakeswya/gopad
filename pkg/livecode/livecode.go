@@ -349,11 +349,11 @@ func (livecode *Livecode) applyEdit(id uint64, revision int, operation *ot.Seque
 
 	for _, data := range livecode.state.cursors {
 		for i, cursor := range data.Cursors {
-			data.Cursors[i] = transformIndex(operation, cursor)
+			data.Cursors[i] = operation.TransformIndex(cursor)
 		}
 		for i, selection := range data.Selections {
-			data.Selections[i][0] = transformIndex(operation, selection[0])
-			data.Selections[i][1] = transformIndex(operation, selection[1])
+			data.Selections[i][0] = operation.TransformIndex(selection[0])
+			data.Selections[i][1] = operation.TransformIndex(selection[1])
 		}
 	}
 	livecode.state.operations = append(livecode.state.operations, UserOperation{
@@ -370,8 +370,7 @@ func (livecode *Livecode) getOperations(start int) ([]UserOperation, int) {
 	defer livecode.stateMtx.RUnlock()
 
 	var operations []UserOperation
-	operationsLen := len(livecode.state.operations)
-	if start < operationsLen {
+	if start < len(livecode.state.operations) {
 		operations = livecode.state.operations[start:]
 	}
 	return operations, len(operations)

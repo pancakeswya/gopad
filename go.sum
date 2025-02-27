@@ -13,6 +13,8 @@ github.com/mattn/go-sqlite3 v1.14.24 h1:tpSp2G2KyMnnQu99ngJ47EIkWVmliIizyZBfPrBW
 github.com/mattn/go-sqlite3 v1.14.24/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
 github.com/pancakeswya/ot v0.0.0-20250222205723-e45f8a458d49 h1:7XpPlTgc/VB70x4JYW8i/oNW7UACkU+8aF6a+D/B2cw=
 github.com/pancakeswya/ot v0.0.0-20250222205723-e45f8a458d49/go.mod h1:ONPYglD2cbcyPb0Qwq8UsVAQo+y7s/F9I0NW6dDOfEg=
+github.com/pancakeswya/ot v0.0.0-20250227162020-5cef2f7b9442 h1:cZduvhBATE+KNsJ931DW7cnIcyJXQjIlOs/dKwGFXI4=
+github.com/pancakeswya/ot v0.0.0-20250227162020-5cef2f7b9442/go.mod h1:ONPYglD2cbcyPb0Qwq8UsVAQo+y7s/F9I0NW6dDOfEg=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/rs/xid v1.5.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
 github.com/rs/zerolog v1.33.0 h1:1cU2KZkvPxNyfgEmhHAz/1A9Bz+llsdYzklWFzgp0r8=
